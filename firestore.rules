@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    }
+
+    // Profil & role user
+    match /users/{uid} {
+      // User boleh baca profil sendiri, Super Admin boleh baca semua
+      allow read: if isSignedIn() && (request.auth.uid == uid || isSuperAdmin());
+
+      // Profil baru selalu role 'user'; Super Admin di-seed manual dari console
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.role == 'user';
+
+      // User boleh update profil sendiri asal role tidak berubah
+      allow update: if isSuperAdmin()
+        || (isSignedIn()
+          && request.auth.uid == uid
+          && request.resource.data.role == resource.data.role);
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // Data mahasiswa: hanya user yang login
+    match /mahasiswa/{id} {
+      allow read, create, update, delete: if isSignedIn();
+    }
+  }
+}

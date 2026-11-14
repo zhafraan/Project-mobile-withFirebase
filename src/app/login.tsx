@@ -1,15 +1,52 @@
 // src/app/login.tsx
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 
+type LoginMode = 'google' | 'email';
+
 export default function LoginScreen() {
-  const { signInWithGoogle, error, status } = useAuth();
-  const isLoading = status === 'loading';
+  const { signInWithGoogle, signInWithEmailPassword, error, status } = useAuth();
+  const [mode, setMode] = useState<LoginMode>('google');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const isLoading = status === 'loading' || submitting;
+  const displayError = localError ?? error;
+
+  const handleGoogleLogin = async () => {
+    setLocalError(null);
+    setSubmitting(true);
+    try {
+      await signInWithGoogle();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEmailLogin = async () => {
+    setLocalError(null);
+
+    if (!email.trim() || !password) {
+      setLocalError('Email dan password wajib diisi.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await signInWithEmailPassword(email, password);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -32,33 +69,123 @@ export default function LoginScreen() {
 
         {/* Card login */}
         <View style={styles.card}>
-          {error ? (
+          {displayError ? (
             <View style={styles.errorBox}>
-              <ThemedText style={styles.errorText}>⚠️ {error}</ThemedText>
+              <ThemedText style={styles.errorText}>⚠️ {displayError}</ThemedText>
             </View>
           ) : null}
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.googleButton,
-              pressed || isLoading ? styles.googleButtonPressed : null,
-            ]}
-            onPress={signInWithGoogle}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <>
-                <View style={styles.googleIconBox}>
-                  <ThemedText style={styles.gLetter}>G</ThemedText>
+          <View style={styles.segment}>
+            <Pressable
+              onPress={() => { setMode('google'); setLocalError(null); }}
+              style={[styles.segmentButton, mode === 'google' ? styles.segmentButtonActive : null]}
+            >
+              <ThemedText
+                style={[styles.segmentText, mode === 'google' ? styles.segmentTextActive : null]}
+              >
+                Google
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => { setMode('email'); setLocalError(null); }}
+              style={[styles.segmentButton, mode === 'email' ? styles.segmentButtonActive : null]}
+            >
+              <ThemedText
+                style={[styles.segmentText, mode === 'email' ? styles.segmentTextActive : null]}
+              >
+                Email
+              </ThemedText>
+            </Pressable>
+          </View>
+
+          {mode === 'google' ? (
+            <Pressable
+              style={({ pressed }) => [
+                styles.googleButton,
+                pressed || isLoading ? styles.googleButtonPressed : null,
+              ]}
+              onPress={handleGoogleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <View style={styles.googleIconBox}>
+                    <ThemedText style={styles.gLetter}>G</ThemedText>
+                  </View>
+                  <ThemedText style={styles.googleButtonText}>
+                    Lanjutkan dengan Google
+                  </ThemedText>
+                </>
+              )}
+            </Pressable>
+          ) : (
+            <View style={styles.form}>
+              <View style={styles.fieldGroup}>
+                <ThemedText style={styles.fieldLabel}>Email</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={(value) => { setEmail(value); setLocalError(null); }}
+                  placeholder="email@gmail.com"
+                  placeholderTextColor="#C0C4CF"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  editable={!isLoading}
+                />
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <ThemedText style={styles.fieldLabel}>Password</ThemedText>
+                <View style={styles.passwordRow}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    value={password}
+                    onChangeText={(value) => { setPassword(value); setLocalError(null); }}
+                    placeholder="Password"
+                    placeholderTextColor="#C0C4CF"
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="current-password"
+                    editable={!isLoading}
+                  />
+                  <Pressable
+                    onPress={() => setShowPassword((prev) => !prev)}
+                    hitSlop={10}
+                    style={styles.passwordToggle}
+                  >
+                    <ThemedText style={styles.passwordToggleText}>
+                      {showPassword ? 'Sembunyikan' : 'Lihat'}
+                    </ThemedText>
+                  </Pressable>
                 </View>
-                <ThemedText style={styles.googleButtonText}>
-                  Lanjutkan dengan Google
-                </ThemedText>
-              </>
-            )}
-          </Pressable>
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.submitButton,
+                  pressed || isLoading ? styles.googleButtonPressed : null,
+                ]}
+                onPress={handleEmailLogin}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <ThemedText style={styles.submitButtonText}>Masuk</ThemedText>
+                )}
+              </Pressable>
+
+              <ThemedText style={styles.hint}>
+                Pertama kali memakai email? Login dengan Google dulu, lalu atur password di
+                menu Info supaya kedua metode masuk ke akun yang sama.
+              </ThemedText>
+            </View>
+          )}
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
@@ -81,7 +208,6 @@ export default function LoginScreen() {
 }
 
 const ACCENT = '#4F6EF7';
-const ACCENT2 = '#7C3AED';
 
 const styles = StyleSheet.create({
   container: {
@@ -174,6 +300,103 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
+  // Mode switch
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F3F9',
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignItems: 'center',
+  },
+  segmentButtonActive: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  segmentTextActive: {
+    color: '#111827',
+  },
+
+  // Email form
+  form: {
+    gap: Spacing.three,
+  },
+  fieldGroup: {
+    gap: 6,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  input: {
+    backgroundColor: '#F7F8FC',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#111827',
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F8FC',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingRight: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#111827',
+  },
+  passwordToggle: {
+    paddingVertical: 6,
+  },
+  passwordToggleText: {
+    color: ACCENT,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  submitButton: {
+    backgroundColor: '#111827',
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  hint: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+
   // Google button
   googleButton: {
     backgroundColor: ACCENT,
@@ -243,4 +466,3 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
-

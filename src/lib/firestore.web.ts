@@ -100,6 +100,14 @@ export async function seedMahasiswaData(): Promise<void> {
     const db = getDb();
     const batch = writeBatch(db);
 
+    const dataAwal: MahasiswaInput[] = [
+      { nim: '2406012400015', nama: 'Darrell Nathan Wijaya', prodi: 'Informatika', angkatan: 2024, email: 'darrell.nathan@students.ac.id' },
+      { nim: '2406012400028', nama: 'Clarissa Aurelia', prodi: 'Informatika', angkatan: 2024, email: 'clarissa.aurelia@students.ac.id' },
+      { nim: '2406012400042', nama: 'Kenzo Raditya Pratama', prodi: 'Informatika', angkatan: 2024, email: 'kenzo.raditya@students.ac.id' },
+      { nim: '2406012400057', nama: 'Felicia Amanda Putri', prodi: 'Sistem Informasi', angkatan: 2024, email: 'felicia.amanda@students.ac.id' },
+      { nim: '2406012400073', nama: 'Gavin Matthew Siregar', prodi: 'Informatika', angkatan: 2024, email: 'gavin.matthew@students.ac.id' },
+    ];
+
     // Hapus data lama agar diganti data baru
     if (containsOldData) {
       snapshot.docs.forEach((d) => batch.delete(d.ref));

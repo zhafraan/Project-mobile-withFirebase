@@ -1,7 +1,12 @@
 // src/lib/auth.ts
 import {
+  createUserWithEmailAndPassword,
+  EmailAuthProvider,
   getAuth,
+  linkWithCredential,
   onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   signInWithCredential,
   GoogleAuthProvider,
@@ -22,6 +27,10 @@ function getGoogleSignin(): any {
 }
 
 const USER_KEY = 'firebase_user';
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
 
 export type AuthUser = {
   uid: string;
@@ -61,6 +70,43 @@ export async function signInWithGoogle(): Promise<UserCredential> {
 
   await saveUserToStorage(userCredential.user);
   return userCredential;
+}
+
+/** Login dengan Email & Password */
+export async function signInWithEmailPassword(
+  email: string,
+  password: string
+): Promise<UserCredential> {
+  return signInWithEmailAndPassword(getAuth(), normalizeEmail(email), password);
+}
+
+/** Registrasi Email & Password baru */
+export async function registerWithEmailPassword(
+  email: string,
+  password: string
+): Promise<UserCredential> {
+  return createUserWithEmailAndPassword(getAuth(), normalizeEmail(email), password);
+}
+
+/**
+ * Tambahkan provider password ke akun yang sedang login.
+ * Dipakai setelah login Google agar email yang sama bisa dipakai di kedua metode.
+ */
+export async function linkPasswordToCurrentUser(
+  email: string,
+  password: string
+): Promise<UserCredential> {
+  const auth = getAuth();
+  const current = auth.currentUser;
+  if (!current) throw new Error('Harus login terlebih dahulu.');
+
+  const credential = EmailAuthProvider.credential(normalizeEmail(email), password);
+  return linkWithCredential(current, credential);
+}
+
+/** Kirim email reset password */
+export async function sendResetPassword(email: string): Promise<void> {
+  await sendPasswordResetEmail(getAuth(), normalizeEmail(email));
 }
 
 /** Logout */

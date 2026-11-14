@@ -3,8 +3,13 @@
 // Metro otomatis pilih file ini saat `expo start --web`
 
 import {
+  createUserWithEmailAndPassword,
+  EmailAuthProvider,
   GoogleAuthProvider,
+  linkWithCredential,
   onAuthStateChanged as _onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
   getAuth as _getAuth,
@@ -24,6 +29,10 @@ export type AuthUser = {
 };
 
 const USER_KEY = 'firebase_user';
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
 
 /** Tidak perlu konfigurasi native di web */
 export function configureGoogleSignIn(_webClientId: string) {
@@ -48,6 +57,39 @@ export async function signInWithGoogle(): Promise<UserCredential> {
   const result = await signInWithPopup(auth, provider);
   await saveUserToStorage(result.user);
   return result;
+}
+
+/** Login dengan Email & Password */
+export async function signInWithEmailPassword(
+  email: string,
+  password: string
+): Promise<UserCredential> {
+  return signInWithEmailAndPassword(getAuth(), normalizeEmail(email), password);
+}
+
+/** Registrasi Email & Password baru */
+export async function registerWithEmailPassword(
+  email: string,
+  password: string
+): Promise<UserCredential> {
+  return createUserWithEmailAndPassword(getAuth(), normalizeEmail(email), password);
+}
+
+/** Tambahkan provider password ke akun yang sedang login (mis. setelah login Google). */
+export async function linkPasswordToCurrentUser(
+  email: string,
+  password: string
+): Promise<UserCredential> {
+  const auth = getAuth();
+  if (!auth.currentUser) throw new Error('Harus login terlebih dahulu.');
+
+  const credential = EmailAuthProvider.credential(normalizeEmail(email), password);
+  return linkWithCredential(auth.currentUser, credential);
+}
+
+/** Kirim email reset password */
+export async function sendResetPassword(email: string): Promise<void> {
+  await sendPasswordResetEmail(getAuth(), normalizeEmail(email));
 }
 
 /** Logout */
