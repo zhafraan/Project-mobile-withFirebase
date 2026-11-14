@@ -23,7 +23,7 @@ import {
   signOut as _signOut,
 } from '@/lib/auth';
 
-const WEB_CLIENT_ID = '968546395061-o05do1jdcvi01mcu3e8gjkojmf7md5fd.apps.googleusercontent.com';
+const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
