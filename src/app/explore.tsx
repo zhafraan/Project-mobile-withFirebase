@@ -1,180 +1,98 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// src/app/explore.tsx — Explore: Info Aplikasi & Panduan Firebase
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ExternalLink } from '@/components/external-link';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
+function InfoCard({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
+      <ThemedText style={styles.cardEmoji}>{emoji}</ThemedText>
+      <View style={styles.cardText}>
+        <ThemedText style={styles.cardTitle}>{title}</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">{desc}</ThemedText>
+      </View>
+    </View>
+  );
+}
+
+export default function ExploreScreen() {
+  const { user } = useAuth();
   const theme = useTheme();
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
-
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
+    <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.safe}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <ThemedText type="subtitle" style={styles.heading}>Tentang Aplikasi</ThemedText>
+          <ThemedText themeColor="textSecondary" style={styles.desc}>
+            Aplikasi manajemen data mahasiswa berbasis Firebase dengan fitur autentikasi Google.
           </ThemedText>
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
+          <ThemedText style={styles.sectionTitle}>Stack Teknologi</ThemedText>
+          <InfoCard emoji="⚛️" title="React Native + Expo" desc="Framework cross-platform untuk Android & iOS" />
+          <InfoCard emoji="🔥" title="Firebase Firestore" desc="Cloud NoSQL database realtime untuk data mahasiswa" />
+          <InfoCard emoji="🔐" title="Firebase Auth + Google" desc="Autentikasi aman dengan akun Google" />
+          <InfoCard emoji="💾" title="AsyncStorage" desc="Penyimpanan lokal untuk bypass login dengan token aktif" />
+
+          <ThemedText style={styles.sectionTitle}>Fitur Utama</ThemedText>
+          <InfoCard emoji="✅" title="Sign In with Google" desc="Login aman menggunakan akun Google via Firebase" />
+          <InfoCard emoji="🔄" title="Auto Login" desc="Bypass halaman login jika token masih aktif di local storage" />
+          <InfoCard emoji="📋" title="Daftar Mahasiswa" desc="Lihat, tambah, dan hapus data mahasiswa secara realtime" />
+          <InfoCard emoji="🔍" title="Pencarian" desc="Filter mahasiswa berdasarkan nama, NIM, atau program studi" />
+
+          <ThemedText style={styles.sectionTitle}>Info Akun</ThemedText>
+          <View style={[styles.accountCard, { backgroundColor: theme.backgroundElement }]}>
+            <ThemedText type="small" themeColor="textSecondary">Login sebagai:</ThemedText>
+            <ThemedText style={styles.accountName}>{user?.displayName ?? '-'}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">{user?.email ?? '-'}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={{ marginTop: 4 }}>UID: {user?.uid ?? '-'}</ThemedText>
+          </View>
+
+          <ThemedText style={styles.sectionTitle}>Referensi</ThemedText>
+          <ExternalLink href="https://rnfirebase.io/">
+            <ThemedText type="linkPrimary">📖 React Native Firebase Docs</ThemedText>
           </ExternalLink>
-        </ThemedView>
+          <ExternalLink href="https://console.firebase.google.com/">
+            <ThemedText type="linkPrimary">🔥 Firebase Console</ThemedText>
+          </ExternalLink>
+          <ExternalLink href="https://docs.expo.dev/">
+            <ThemedText type="linkPrimary">🚀 Expo Documentation</ThemedText>
+          </ExternalLink>
 
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
-
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
+  container: { flex: 1 },
+  safe: { flex: 1, paddingHorizontal: Spacing.three },
+  heading: { marginTop: Spacing.four, marginBottom: Spacing.one },
+  desc: { marginBottom: Spacing.three, lineHeight: 22 },
+  sectionTitle: {
+    fontSize: 18, fontWeight: '600',
+    marginTop: Spacing.four, marginBottom: Spacing.two,
   },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  card: {
+    flexDirection: 'row', gap: Spacing.two,
+    padding: Spacing.three, borderRadius: 12,
+    marginBottom: Spacing.two,
+    alignItems: 'flex-start',
   },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
+  cardEmoji: { fontSize: 24, lineHeight: 28 },
+  cardText: { flex: 1, gap: 2 },
+  cardTitle: { fontWeight: '600', fontSize: 15 },
+  accountCard: {
+    padding: Spacing.three, borderRadius: 12, gap: 2,
   },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
-  },
-  centerText: {
-    textAlign: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
-  },
+  accountName: { fontWeight: '700', fontSize: 18, marginVertical: 2 },
 });
