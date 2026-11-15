@@ -24,17 +24,20 @@ Kesimpulan: ekspektasi "login Google dan login Email/Password dengan email yang 
 
 ## 2. Kondisi Kode Saat Ini
 
-> Status: langkah inti sudah diimplementasikan di branch `feat/user-role-management`
-> (login email/password, linking password, profil `users/{uid}`, role di context/UI,
-> dan `firestore.rules`). Yang masih manual: deploy rules + seed Super Admin di console.
+> Status: langkah inti sudah diimplementasikan (login email/password, linking password,
+> profil `users/{uid}`, role di context/UI, modal wajib "Buat Password" setelah login Google,
+> dan `firestore.rules`). Deploy rules bisa lewat Console atau `npx firebase-tools deploy
+> --only firestore:rules` (sudah ada `firebase.json` + `.firebaserc`). Seed Super Admin
+> tetap manual lewat Console (lihat bagian 6.0).
 
 | Area | Status |
 |---|---|
 | Login Google | Sudah ada (native: `@react-native-google-signin`, web: popup) |
 | Login Email/Password | Sudah ada |
-| Linking provider | Sudah ada (Google → tambah password; arah sebaliknya masih manual) |
+| Linking provider | Otomatis lewat modal "Buat Password" setelah login Google (arah sebaliknya masih manual) |
 | Koleksi `users` + role | Sudah ada (`src/lib/users.ts`, `src/lib/users.web.ts`) |
 | Role di UI | Sudah ada (badge di `explore.tsx`) |
+| Deploy rules | `firebase.json` + `.firebaserc` tersedia; publish via Console atau CLI |
 | `firebase` (JS SDK) | Sudah menjadi dependency langsung |
 | Typecheck | Lulus (`npx tsc --noEmit`) |
 
@@ -46,6 +49,7 @@ File utama yang akan diubah:
 - `src/context/auth-context.web.tsx` (web)
 - `src/app/login.tsx`
 - `src/app/explore.tsx`
+- `src/components/password-setup-modal.tsx`
 - Baru: `src/lib/users.ts`, `src/lib/users.web.ts`, `firestore.rules`
 
 ---
@@ -109,6 +113,14 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
 
+    function isAdmin() {
+      return isSignedIn()
+        && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+          || isSuperAdmin()
+        );
+    }
+
     match /users/{uid} {
       // User boleh baca profil sendiri, Super Admin boleh baca semua
       allow read: if isSignedIn() && (request.auth.uid == uid || isSuperAdmin());
@@ -126,6 +138,13 @@ service cloud.firestore {
           && request.resource.data.role == resource.data.role);
 
       allow delete: if isSuperAdmin();
+    }
+
+    // Data mahasiswa: Semua user yang login boleh membaca (view-only),
+    // hanya Admin dan Super Admin yang boleh menambah, mengubah, atau menghapus
+    match /mahasiswa/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
   }
 }
@@ -375,6 +394,7 @@ uid = UID-123, role = super_admin
         |
         v
 Menu Akun -> "Atur Password" (linkPasswordToCurrentUser)
+   (otomatis muncul sebagai modal "Buat Password" setelah login Google)
         |
         v
 uid tetap UID-123, providers = [google.com, password]
@@ -392,10 +412,40 @@ Tanpa langkah "Atur Password", login Email/Password untuk email X akan gagal (ak
 
 ## 6. Skenario Pengujian
 
+### 6.0 Setup Super Admin (sekali saja)
+
+1. **Aktifkan provider** di Firebase Console → Authentication → Sign-in method:
+   - Google: aktif.
+   - Email/Password: aktif.
+   - Authentication → Settings → **One account per email address**: aktif.
+2. **Deploy Firestore rules** (pilih salah satu):
+   - Console: Firestore Database → Rules → tempel isi `firestore.rules` → **Publish**.
+   - CLI: `npx firebase-tools deploy --only firestore:rules` (memakai `firebase.json`
+     dan `.firebaserc` yang sudah disediakan, project `tugas2-ppk`).
+   - Pastikan Firestore Database sudah dibuat (bukan hanya project-nya).
+3. **Login pertama dengan Google** memakai email yang akan dijadikan Super Admin.
+4. Saat modal **"Buat Password"** muncul, isi password (minimal 6 karakter) lalu simpan.
+   Modal ini wajib dan otomatis me-link provider `password` ke UID Google tersebut.
+   Setelah selesai, `providers` di `users/{uid}` berisi `google.com` + `password`.
+5. Buka Firebase Console → **Authentication → Users**, salin **User UID** untuk email
+   tersebut. Pastikan hanya ada **satu** user dengan email itu.
+6. Buka **Firestore Database → users → dokumen dengan ID = UID tadi**, ubah field
+   `role` menjadi `super_admin` (dokumen `users/{uid}` dibuat otomatis saat login
+   pertama; jika belum ada, tunggu beberapa detik lalu refresh).
+7. **Logout**, lalu login lagi memakai **email & password** yang baru dibuat.
+8. Verifikasi di tab **Info**: UID harus sama, badge role **Super Admin**, dan provider
+   berisi Google + Email/Password.
+
+> Catatan: kalau email tersebut sudah pernah dibuat sebagai akun Email/Password sebelum
+> tes, login Google akan gagal dengan `auth/account-exists-with-different-credential`.
+> Hapus akun lama itu di Authentication → Users (atau pakai email Google lain), lalu
+> ulangi langkah 3. Firebase tidak menggabungkan dua akun yang sudah terlanjur terpisah.
+
 ### 6.1 Prasyarat Pengujian
 
 - Provider Google dan Email/Password aktif.
 - **One account per email address** aktif.
+- Rules pada langkah 6.0 sudah dipublish.
 - Email Super Admin: `________________` (isi sebelum tes).
 - Doc `users/{uid}` email Super Admin sudah berisi `role: "super_admin"`.
 - Aplikasi diuji di web dan build native (minimal satu).
@@ -404,12 +454,12 @@ Tanpa langkah "Atur Password", login Email/Password untuk email X akan gagal (ak
 
 | ID | Skenario | Prasyarat | Langkah | Ekspektasi |
 |---|---|---|---|---|
-| TC-01 | Login Google pertama kali | Email X belum punya akun | Login dengan Google email X | Berhasil masuk; doc `users/{uid}` terbentuk; `providers` berisi `google.com` |
-| TC-02 | Role Super Admin terbaca | Doc `users/{uid}` email X sudah `super_admin` | Login Google email X | UI menampilkan badge **Super Admin** |
-| TC-03 | Tambah password ke akun Google | Sedang login Google email X | Menu Akun → Atur Password → isi password valid | Berhasil; `providers` menjadi `["google.com","password"]`; **UID tidak berubah** |
-| TC-04 | Login Email/Password dengan email sama | TC-03 berhasil | Logout → login Email/Password email X + password | Masuk ke **UID yang sama**; role tetap **Super Admin** |
-| TC-05 | Login Google setelah linking | TC-03 berhasil | Logout → login Google email X | **UID sama**; role tetap **Super Admin** |
-| TC-06 | Ganti metode bolak-balik | TC-03 berhasil | Logout → Email/Password → logout → Google → logout → Email/Password | Semua login menghasilkan UID yang sama dan role yang sama |
+| TC-01 | Login Google pertama kali | Email X belum punya akun | Login dengan Google email X, lalu isi modal **Buat Password** | Berhasil masuk; doc `users/{uid}` terbentuk; `providers` berisi `google.com` + `password` |
+| TC-02 | Role Super Admin terbaca | Doc `users/{uid}` email X sudah diubah ke `super_admin` (langkah 6.0) | Logout → login Google email X | UI menampilkan badge **Super Admin** |
+| TC-03 | Cek hasil linking | TC-01 berhasil | Buka Firestore → `users/{uid}` | `providers` berisi `google.com` dan `password`; **UID tidak berubah** |
+| TC-04 | Login Email/Password dengan email sama | TC-01 & TC-02 berhasil | Logout → login Email/Password email X + password | Masuk ke **UID yang sama**; role tetap **Super Admin** |
+| TC-05 | Login Google setelah linking | TC-01 berhasil | Logout → login Google email X | **UID sama**; role tetap **Super Admin** |
+| TC-06 | Ganti metode bolak-balik | TC-01 berhasil | Logout → Email/Password → logout → Google → logout → Email/Password | Semua login menghasilkan UID yang sama dan role yang sama |
 | TC-07 | Auto-login setelah restart | Sedang login | Tutup aplikasi, buka lagi | Sesi tetap; role dibaca dari Firestore, bukan cache lokal |
 | TC-08 | Registrasi Email/Password baru | Email Y belum terdaftar | Daftar dengan email Y + password | Akun baru dibuat; role default `user`; tidak ada akses Super Admin |
 
@@ -471,7 +521,9 @@ Tanpa langkah "Atur Password", login Email/Password untuk email X akan gagal (ak
 
 ## 7. Definisi Selesai (Acceptance Criteria)
 
+- [ ] `firestore.rules` sudah dipublish ke project `tugas2-ppk`.
 - [ ] Login Google berfungsi di native dan web.
+- [ ] Modal **Buat Password** muncul otomatis setelah login Google pertama kali.
 - [ ] Login Email/Password berfungsi di native dan web.
 - [ ] Password dapat di-link ke akun Google dari halaman Akun.
 - [ ] Setelah linking, login Google dan Email/Password menghasilkan `uid` yang sama.

@@ -4,31 +4,30 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PasswordEye } from '@/components/password-eye';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 
-type LoginMode = 'google' | 'email';
-
 export default function LoginScreen() {
   const { signInWithGoogle, signInWithEmailPassword, error, status } = useAuth();
-  const [mode, setMode] = useState<LoginMode>('google');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const isLoading = status === 'loading' || submitting;
+  const isLoading = status === 'loading' || emailSubmitting || googleSubmitting;
   const displayError = localError ?? error;
 
   const handleGoogleLogin = async () => {
     setLocalError(null);
-    setSubmitting(true);
+    setGoogleSubmitting(true);
     try {
       await signInWithGoogle();
     } finally {
-      setSubmitting(false);
+      setGoogleSubmitting(false);
     }
   };
 
@@ -40,11 +39,11 @@ export default function LoginScreen() {
       return;
     }
 
-    setSubmitting(true);
+    setEmailSubmitting(true);
     try {
       await signInWithEmailPassword(email, password);
     } finally {
-      setSubmitting(false);
+      setEmailSubmitting(false);
     }
   };
 
@@ -63,7 +62,7 @@ export default function LoginScreen() {
           </View>
           <ThemedText style={styles.title}>Firebase App MHS</ThemedText>
           <ThemedText style={styles.subtitle}>
-           Testing Firebase Autentikasi dengan Google {'\n'}dan database Firestore
+           Test Firebase Autentikasi, Database Firestore{'\n'}dan User Management Role.
           </ThemedText>
         </View>
 
@@ -75,117 +74,61 @@ export default function LoginScreen() {
             </View>
           ) : null}
 
-          <View style={styles.segment}>
-            <Pressable
-              onPress={() => { setMode('google'); setLocalError(null); }}
-              style={[styles.segmentButton, mode === 'google' ? styles.segmentButtonActive : null]}
-            >
-              <ThemedText
-                style={[styles.segmentText, mode === 'google' ? styles.segmentTextActive : null]}
-              >
-                Google
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              onPress={() => { setMode('email'); setLocalError(null); }}
-              style={[styles.segmentButton, mode === 'email' ? styles.segmentButtonActive : null]}
-            >
-              <ThemedText
-                style={[styles.segmentText, mode === 'email' ? styles.segmentTextActive : null]}
-              >
-                Email
-              </ThemedText>
-            </Pressable>
-          </View>
+          <View style={styles.form}>
+            <View style={styles.fieldGroup}>
+              <ThemedText style={styles.fieldLabel}>Email</ThemedText>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={(value) => { setEmail(value); setLocalError(null); }}
+                placeholder="email@gmail.com"
+                placeholderTextColor="#C0C4CF"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                editable={!isLoading}
+              />
+            </View>
 
-          {mode === 'google' ? (
-            <Pressable
-              style={({ pressed }) => [
-                styles.googleButton,
-                pressed || isLoading ? styles.googleButtonPressed : null,
-              ]}
-              onPress={handleGoogleLogin}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <View style={styles.googleIconBox}>
-                    <ThemedText style={styles.gLetter}>G</ThemedText>
-                  </View>
-                  <ThemedText style={styles.googleButtonText}>
-                    Lanjutkan dengan Google
-                  </ThemedText>
-                </>
-              )}
-            </Pressable>
-          ) : (
-            <View style={styles.form}>
-              <View style={styles.fieldGroup}>
-                <ThemedText style={styles.fieldLabel}>Email</ThemedText>
+            <View style={styles.fieldGroup}>
+              <ThemedText style={styles.fieldLabel}>Password</ThemedText>
+              <View style={styles.passwordRow}>
                 <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={(value) => { setEmail(value); setLocalError(null); }}
-                  placeholder="email@gmail.com"
+                  style={styles.passwordInput}
+                  value={password}
+                  onChangeText={(value) => { setPassword(value); setLocalError(null); }}
+                  placeholder="Password"
                   placeholderTextColor="#C0C4CF"
-                  keyboardType="email-address"
+                  secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  autoComplete="email"
+                  autoComplete="current-password"
                   editable={!isLoading}
                 />
+                <PasswordEye
+                  showPassword={showPassword}
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  disabled={isLoading}
+                />
               </View>
-
-              <View style={styles.fieldGroup}>
-                <ThemedText style={styles.fieldLabel}>Password</ThemedText>
-                <View style={styles.passwordRow}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    value={password}
-                    onChangeText={(value) => { setPassword(value); setLocalError(null); }}
-                    placeholder="Password"
-                    placeholderTextColor="#C0C4CF"
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="current-password"
-                    editable={!isLoading}
-                  />
-                  <Pressable
-                    onPress={() => setShowPassword((prev) => !prev)}
-                    hitSlop={10}
-                    style={styles.passwordToggle}
-                  >
-                    <ThemedText style={styles.passwordToggleText}>
-                      {showPassword ? 'Sembunyikan' : 'Lihat'}
-                    </ThemedText>
-                  </Pressable>
-                </View>
-              </View>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.submitButton,
-                  pressed || isLoading ? styles.googleButtonPressed : null,
-                ]}
-                onPress={handleEmailLogin}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <ThemedText style={styles.submitButtonText}>Masuk</ThemedText>
-                )}
-              </Pressable>
-
-              <ThemedText style={styles.hint}>
-                Pertama kali memakai email? Login dengan Google dulu, lalu atur password di
-                menu Info supaya kedua metode masuk ke akun yang sama.
-              </ThemedText>
             </View>
-          )}
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.submitButton,
+                pressed || isLoading ? styles.googleButtonPressed : null,
+              ]}
+              onPress={handleEmailLogin}
+              disabled={isLoading}
+            >
+              {emailSubmitting ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <ThemedText style={styles.submitButtonText}>Masuk</ThemedText>
+              )}
+            </Pressable>
+          </View>
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
@@ -193,10 +136,31 @@ export default function LoginScreen() {
             <View style={styles.dividerLine} />
           </View>
 
+          <Pressable
+            style={({ pressed }) => [
+              styles.googleButton,
+              pressed || isLoading ? styles.googleButtonPressed : null,
+            ]}
+            onPress={handleGoogleLogin}
+            disabled={isLoading}
+          >
+            {googleSubmitting ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <View style={styles.googleIconBox}>
+                  <ThemedText style={styles.gLetter}>G</ThemedText>
+                </View>
+                <ThemedText style={styles.googleButtonText}>
+                  Sign in with Google
+                </ThemedText>
+              </>
+            )}
+          </Pressable>
+
           <ThemedText style={styles.terms}>
-            Dengan masuk kamu menyetujui{' '}
-            <ThemedText style={styles.termsLink}>Kebijakan Privasi</ThemedText>
-            {' '}aplikasi ini.
+            Buat akun atau masuk dengan {' '}
+            <ThemedText style={styles.termsLink}>SignIn with google</ThemedText>
           </ThemedText>
         </View>
 
@@ -298,37 +262,6 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#B91C1C',
     fontSize: 13,
-  },
-
-  // Mode switch
-  segment: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F3F9',
-    borderRadius: 12,
-    padding: 4,
-    gap: 4,
-  },
-  segmentButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 9,
-    alignItems: 'center',
-  },
-  segmentButtonActive: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  segmentText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  segmentTextActive: {
-    color: '#111827',
   },
 
   // Email form

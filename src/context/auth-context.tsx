@@ -170,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     try {
       const credential = await _linkPasswordToCurrentUser(email, password);
+      setFirebaseUser(credential.user);
       const profile = await ensureUserProfile(credential.user);
       setRole(profile.role);
       setProviders(profile.providers);

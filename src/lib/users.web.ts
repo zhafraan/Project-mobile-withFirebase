@@ -46,7 +46,11 @@ export function normalizeEmail(email: string | null): string | null {
 }
 
 export function parseRole(value: unknown): UserRole {
-  return value === 'super_admin' || value === 'admin' ? value : 'user';
+  if (typeof value !== 'string') return 'user';
+  const clean = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (clean === 'super_admin' || clean === 'superadmin') return 'super_admin';
+  if (clean === 'admin') return 'admin';
+  return 'user';
 }
 
 export function getProviders(source: AuthProfileSource): string[] {

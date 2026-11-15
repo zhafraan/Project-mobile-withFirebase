@@ -7,14 +7,24 @@ import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
+import { PasswordSetupModal } from '@/components/password-setup-modal';
 import { AuthProvider, useAuth } from '@/context/auth-context';
 
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
-  const { status } = useAuth();
+  const { status, firebaseUser, user } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+
+  const providerIds: string[] = (firebaseUser?.providerData ?? []).map(
+    (provider: { providerId: string }) => provider.providerId
+  );
+  const needsPasswordSetup =
+    status === 'authenticated' &&
+    !!user?.email &&
+    providerIds.includes('google.com') &&
+    !providerIds.includes('password');
 
   // Redirect logic: jaga konsistensi rute berdasarkan status auth
   useEffect(() => {
@@ -32,7 +42,12 @@ function RootNavigator() {
   // Jika sudah terautentikasi → tampilkan AppTabs (tab navigator)
   // Jika belum / loading → Slot akan render halaman login setelah redirect
   if (status === 'authenticated') {
-    return <AppTabs />;
+    return (
+      <>
+        <AppTabs />
+        <PasswordSetupModal visible={needsPasswordSetup} />
+      </>
+    );
   }
 
   return <Slot />;

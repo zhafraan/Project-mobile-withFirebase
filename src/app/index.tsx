@@ -17,7 +17,6 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import {
   addMahasiswa,
@@ -42,9 +41,11 @@ function avatarColor(name: string) {
 // ─── Komponen Card Mahasiswa ─────────────────────────────────────────────────
 function MahasiswaCard({
   item,
+  canManage = false,
   onDelete,
 }: {
   item: Mahasiswa;
+  canManage?: boolean;
   onDelete: (id: string, nama: string) => void;
 }) {
   const color = avatarColor(item.nama);
@@ -68,15 +69,17 @@ function MahasiswaCard({
         </View>
         <ThemedText style={styles.cardEmail}>{item.email}</ThemedText>
       </View>
-      <Pressable
-        onPress={() => onDelete(item.id, item.nama)}
-        style={({ pressed }) => [styles.deleteBtn, { opacity: pressed ? 0.5 : 1 }]}
-        hitSlop={10}
-      >
-        <View style={styles.deleteBtnInner}>
-          <ThemedText style={styles.deleteBtnText}>✕</ThemedText>
-        </View>
-      </Pressable>
+      {canManage ? (
+        <Pressable
+          onPress={() => onDelete(item.id, item.nama)}
+          style={({ pressed }) => [styles.deleteBtn, { opacity: pressed ? 0.5 : 1 }]}
+          hitSlop={10}
+        >
+          <View style={styles.deleteBtnInner}>
+            <ThemedText style={styles.deleteBtnText}>✕</ThemedText>
+          </View>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -190,24 +193,58 @@ function TambahModal({
 
 // ─── Home Screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
-  const { user, signOut } = useAuth();
+  const { user, status, role, signOut } = useAuth();
   const [mahasiswaList, setMahasiswaList] = useState<Mahasiswa[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
   const [imageError, setImageError] = useState(false);
 
+  const canManage = role === 'admin' || role === 'super_admin';
+
   useEffect(() => {
-    seedMahasiswaData().catch(console.warn);
+    if (status !== 'authenticated') return;
+
+    let active = true;
+
+    if (canManage) {
+      seedMahasiswaData().catch((e) => {
+        console.warn('Seed error:', e);
+      });
+    }
+
     const unsubscribe = subscribeMahasiswa(
-      (list) => { setMahasiswaList(list); setLoading(false); setRefreshing(false); },
-      (err) => { console.error('Firestore error:', err); setLoading(false); setRefreshing(false); }
+      (list) => {
+        if (!active) return;
+        setMahasiswaList(list);
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (err) => {
+        if (!active) return;
+        console.error('Firestore error:', err);
+        setLoadError(err.message);
+        setLoading(false);
+        setRefreshing(false);
+      }
     );
-    return unsubscribe;
-  }, []);
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [status, canManage]);
 
   const handleDelete = (id: string, nama: string) => {
+    if (!canManage) {
+      const msg = 'Hanya Admin dan Super Admin yang dapat menghapus data mahasiswa.';
+      if (Platform.OS === 'web') alert(msg);
+      else Alert.alert('Akses Dibatasi', msg);
+      return;
+    }
+
     if (Platform.OS === 'web') {
       const confirmDelete = window.confirm(`Hapus data mahasiswa "${nama}"?`);
       if (confirmDelete) {
@@ -278,11 +315,35 @@ export default function HomeScreen() {
                 </ThemedText>
               </View>
             )}
-            <View>
+            <View style={styles.headerInfo}>
               <ThemedText style={styles.headerGreet}>Selamat datang 👋</ThemedText>
-              <ThemedText style={styles.headerName}>
-                {user?.displayName?.split(' ')[0] ?? 'User'}
-              </ThemedText>
+              <View style={styles.headerNameRow}>
+                <ThemedText style={styles.headerName} numberOfLines={1}>
+                  {user?.displayName?.split(' ')[0] ?? 'User'}
+                </ThemedText>
+                {role === 'super_admin' ? (
+                  <View style={[styles.roleBadge, styles.roleBadgeSuperAdmin]}>
+                    <ThemedText style={styles.roleBadgeIcon}>👑</ThemedText>
+                    <ThemedText style={[styles.roleBadgeText, styles.roleBadgeTextSuperAdmin]}>
+                      Super Admin
+                    </ThemedText>
+                  </View>
+                ) : role === 'admin' ? (
+                  <View style={[styles.roleBadge, styles.roleBadgeAdmin]}>
+                    <ThemedText style={styles.roleBadgeIcon}>🛡️</ThemedText>
+                    <ThemedText style={[styles.roleBadgeText, styles.roleBadgeTextAdmin]}>
+                      Admin
+                    </ThemedText>
+                  </View>
+                ) : (
+                  <View style={[styles.roleBadge, styles.roleBadgeUser]}>
+                    <ThemedText style={styles.roleBadgeIcon}>👤</ThemedText>
+                    <ThemedText style={[styles.roleBadgeText, styles.roleBadgeTextUser]}>
+                      User
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
           <Pressable
@@ -321,12 +382,14 @@ export default function HomeScreen() {
             onChangeText={setSearch}
           />
         </View>
-        <Pressable
-          style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.85 : 1 }]}
-          onPress={() => setShowModal(true)}
-        >
-          <ThemedText style={styles.addBtnText}>＋</ThemedText>
-        </Pressable>
+        {canManage && (
+          <Pressable
+            style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.85 : 1 }]}
+            onPress={() => setShowModal(true)}
+          >
+            <ThemedText style={styles.addBtnText}>＋</ThemedText>
+          </Pressable>
+        )}
       </View>
 
       {/* List */}
@@ -334,6 +397,12 @@ export default function HomeScreen() {
         <View style={styles.center}>
           <ActivityIndicator size="large" color={ACCENT} />
           <ThemedText style={styles.loadingText}>Memuat data...</ThemedText>
+        </View>
+      ) : loadError ? (
+        <View style={styles.center}>
+          <ThemedText style={styles.emptyEmoji}>⚠️</ThemedText>
+          <ThemedText style={styles.emptyTitle}>Gagal memuat data</ThemedText>
+          <ThemedText style={styles.emptySubtitle}>{loadError}</ThemedText>
         </View>
       ) : (
         <FlatList
@@ -344,7 +413,7 @@ export default function HomeScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(true)} tintColor={ACCENT} />
           }
           renderItem={({ item }) => (
-            <MahasiswaCard item={item} onDelete={handleDelete} />
+            <MahasiswaCard item={item} canManage={canManage} onDelete={handleDelete} />
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
@@ -353,18 +422,26 @@ export default function HomeScreen() {
                 {search ? 'Tidak ada hasil' : 'Belum ada data'}
               </ThemedText>
               <ThemedText style={styles.emptySubtitle}>
-                {search ? 'Coba kata kunci lain' : 'Ketuk ＋ untuk tambah mahasiswa'}
+                {search
+                  ? 'Coba kata kunci lain'
+                  : canManage
+                  ? 'Ketuk ＋ untuk tambah mahasiswa'
+                  : 'Data mahasiswa belum tersedia'}
               </ThemedText>
             </View>
           }
         />
       )}
 
-      <TambahModal
-        visible={showModal}
-        onClose={() => setShowModal(false)}
-        onSave={async (data) => { await addMahasiswa(data); }}
-      />
+      {canManage && (
+        <TambahModal
+          visible={showModal}
+          onClose={() => setShowModal(false)}
+          onSave={async (data) => {
+            await addMahasiswa(data);
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -385,7 +462,17 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  headerInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   avatar: { width: 44, height: 44, borderRadius: 22 },
   avatarPlaceholder: {
     width: 44, height: 44, borderRadius: 22,
@@ -393,7 +480,54 @@ const styles = StyleSheet.create({
   },
   avatarInitial: { color: '#fff', fontWeight: '700', fontSize: 18 },
   headerGreet: { fontSize: 12, color: '#9CA3AF', fontWeight: '500' },
+  headerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+    marginTop: 2,
+  },
   headerName: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignSelf: 'center',
+  },
+  roleBadgeSuperAdmin: {
+    backgroundColor: '#F5F3FF',
+    borderColor: '#DDD6FE',
+  },
+  roleBadgeAdmin: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+  },
+  roleBadgeUser: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  roleBadgeIcon: {
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  roleBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  roleBadgeTextSuperAdmin: {
+    color: '#7C3AED',
+  },
+  roleBadgeTextAdmin: {
+    color: '#D97706',
+  },
+  roleBadgeTextUser: {
+    color: '#059669',
+  },
   logoutBtn: {
     backgroundColor: '#FEF2F2',
     paddingHorizontal: 14,

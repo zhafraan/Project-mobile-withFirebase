@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ExternalLink } from '@/components/external-link';
+import { PasswordEye } from '@/components/password-eye';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -18,10 +19,31 @@ import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 import type { UserRole } from '@/lib/users';
 
-const ROLE_META: Record<UserRole, { label: string; color: string }> = {
-  super_admin: { label: 'Super Admin', color: '#7C3AED' },
-  admin: { label: 'Admin', color: '#D97706' },
-  user: { label: 'User', color: '#059669' },
+const ROLE_META: Record<
+  UserRole,
+  { label: string; color: string; bg: string; border: string; icon: string }
+> = {
+  super_admin: {
+    label: 'Super Admin',
+    color: '#7C3AED',
+    bg: '#F5F3FF',
+    border: '#DDD6FE',
+    icon: '👑',
+  },
+  admin: {
+    label: 'Admin',
+    color: '#D97706',
+    bg: '#FEF3C7',
+    border: '#FDE68A',
+    icon: '🛡️',
+  },
+  user: {
+    label: 'User',
+    color: '#059669',
+    bg: '#ECFDF5',
+    border: '#A7F3D0',
+    icon: '👤',
+  },
 };
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -55,7 +77,10 @@ export default function ExploreScreen() {
   );
 
   const hasPassword = providers.includes('password');
-  const roleMeta = role ? ROLE_META[role] : { label: 'Memuat...', color: '#9CA3AF' };
+  const roleMeta =
+    role && ROLE_META[role]
+      ? ROLE_META[role]
+      : { label: 'Memuat...', color: '#9CA3AF', bg: '#F3F4F6', border: '#E5E7EB', icon: '⏳' };
 
   const handleLinkPassword = async () => {
     setMessage(null);
@@ -116,7 +141,13 @@ export default function ExploreScreen() {
             <ThemedText type="small" themeColor="textSecondary">Login sebagai:</ThemedText>
             <View style={styles.accountNameRow}>
               <ThemedText style={styles.accountName}>{user?.displayName ?? '-'}</ThemedText>
-              <View style={[styles.roleBadge, { backgroundColor: roleMeta.color + '18' }]}>
+              <View
+                style={[
+                  styles.roleBadge,
+                  { backgroundColor: roleMeta.bg, borderColor: roleMeta.border },
+                ]}
+              >
+                <ThemedText style={styles.roleBadgeIcon}>{roleMeta.icon}</ThemedText>
                 <ThemedText style={[styles.roleBadgeText, { color: roleMeta.color }]}>
                   {roleMeta.label}
                 </ThemedText>
@@ -206,15 +237,11 @@ export default function ExploreScreen() {
                       autoCorrect={false}
                       editable={!saving}
                     />
-                    <Pressable
+                    <PasswordEye
+                      showPassword={showPassword}
                       onPress={() => setShowPassword((prev) => !prev)}
-                      hitSlop={10}
-                      style={styles.passwordToggle}
-                    >
-                      <ThemedText style={styles.passwordToggleText}>
-                        {showPassword ? 'Sembunyikan' : 'Lihat'}
-                      </ThemedText>
-                    </Pressable>
+                      disabled={saving}
+                    />
                   </View>
                 </View>
 
@@ -295,9 +322,17 @@ const styles = StyleSheet.create({
   },
   accountName: { fontWeight: '700', fontSize: 18, marginVertical: 2 },
   roleBadge: {
-    borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderWidth: 1,
+    alignSelf: 'center',
   },
-  roleBadgeText: { fontSize: 12, fontWeight: '700' },
+  roleBadgeIcon: { fontSize: 11, lineHeight: 14 },
+  roleBadgeText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
   providersRow: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4,
   },
