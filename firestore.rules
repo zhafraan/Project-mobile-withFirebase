@@ -12,14 +12,6 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
 
-    function isAdmin() {
-      return isSignedIn()
-        && (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-          || isSuperAdmin()
-        );
-    }
-
     // Profil & role user
     match /users/{uid} {
       // User boleh baca profil sendiri, Super Admin boleh baca semua
@@ -41,10 +33,10 @@ service cloud.firestore {
     }
 
     // Data mahasiswa: Semua user yang login boleh membaca (view-only),
-    // hanya Admin dan Super Admin yang boleh menambah, mengubah, atau menghapus
+    // hanya Super Admin yang boleh menambah, mengubah, atau menghapus
     match /mahasiswa/{id} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if isSuperAdmin();
     }
   }
 }

@@ -89,7 +89,7 @@ Buat collection `users` dengan dokumen `users/{uid}`:
 Nilai role:
 
 ```ts
-type UserRole = 'super_admin' | 'admin' | 'user';
+type UserRole = 'super_admin' | 'user';
 ```
 
 **Bootstrap Super Admin:** login Google sekali, lalu buka Firestore Console dan set `role: "super_admin"` pada doc `users/{uid}` milik email tersebut. Jangan izinkan client menulis role sendiri.
@@ -113,14 +113,6 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
 
-    function isAdmin() {
-      return isSignedIn()
-        && (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-          || isSuperAdmin()
-        );
-    }
-
     match /users/{uid} {
       // User boleh baca profil sendiri, Super Admin boleh baca semua
       allow read: if isSignedIn() && (request.auth.uid == uid || isSuperAdmin());
@@ -141,10 +133,10 @@ service cloud.firestore {
     }
 
     // Data mahasiswa: Semua user yang login boleh membaca (view-only),
-    // hanya Admin dan Super Admin yang boleh menambah, mengubah, atau menghapus
+    // hanya Super Admin yang boleh menambah, mengubah, atau menghapus
     match /mahasiswa/{id} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if isSuperAdmin();
     }
   }
 }
@@ -363,7 +355,7 @@ type AuthContextValue = {
    - Tampilkan error yang ramah.
    - Opsional: link "Lupa password".
 2. `src/app/explore.tsx`
-   - Tampilkan badge role (`Super Admin` / `Admin` / `User`).
+   - Tampilkan badge role (`Super Admin` / `User`).
    - Tampilkan provider yang ter-link.
    - Tombol **"Atur Password"** jika provider `password` belum ada (memanggil `linkPassword`).
 3. Opsional: halaman `src/app/users.tsx` khusus Super Admin

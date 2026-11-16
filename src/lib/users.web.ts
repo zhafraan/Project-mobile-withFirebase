@@ -14,7 +14,7 @@ import {
 
 import { firebaseApp } from './firebase.web';
 
-export type UserRole = 'super_admin' | 'admin' | 'user';
+export type UserRole = 'super_admin' | 'user';
 
 export interface UserProfile {
   uid: string;
@@ -49,7 +49,6 @@ export function parseRole(value: unknown): UserRole {
   if (typeof value !== 'string') return 'user';
   const clean = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (clean === 'super_admin' || clean === 'superadmin') return 'super_admin';
-  if (clean === 'admin') return 'admin';
   return 'user';
 }
 

@@ -202,7 +202,7 @@ export default function HomeScreen() {
   const [search, setSearch] = useState('');
   const [imageError, setImageError] = useState(false);
 
-  const canManage = role === 'admin' || role === 'super_admin';
+  const canManage = role === 'super_admin';
 
   useEffect(() => {
     if (status !== 'authenticated') return;
@@ -239,7 +239,7 @@ export default function HomeScreen() {
 
   const handleDelete = (id: string, nama: string) => {
     if (!canManage) {
-      const msg = 'Hanya Admin dan Super Admin yang dapat menghapus data mahasiswa.';
+      const msg = 'Hanya Super Admin yang dapat menghapus data mahasiswa.';
       if (Platform.OS === 'web') alert(msg);
       else Alert.alert('Akses Dibatasi', msg);
       return;
@@ -326,13 +326,6 @@ export default function HomeScreen() {
                     <ThemedText style={styles.roleBadgeIcon}>👑</ThemedText>
                     <ThemedText style={[styles.roleBadgeText, styles.roleBadgeTextSuperAdmin]}>
                       Super Admin
-                    </ThemedText>
-                  </View>
-                ) : role === 'admin' ? (
-                  <View style={[styles.roleBadge, styles.roleBadgeAdmin]}>
-                    <ThemedText style={styles.roleBadgeIcon}>🛡️</ThemedText>
-                    <ThemedText style={[styles.roleBadgeText, styles.roleBadgeTextAdmin]}>
-                      Admin
                     </ThemedText>
                   </View>
                 ) : (
@@ -502,10 +495,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F3FF',
     borderColor: '#DDD6FE',
   },
-  roleBadgeAdmin: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#FDE68A',
-  },
   roleBadgeUser: {
     backgroundColor: '#ECFDF5',
     borderColor: '#A7F3D0',
@@ -521,9 +510,6 @@ const styles = StyleSheet.create({
   },
   roleBadgeTextSuperAdmin: {
     color: '#7C3AED',
-  },
-  roleBadgeTextAdmin: {
-    color: '#D97706',
   },
   roleBadgeTextUser: {
     color: '#059669',

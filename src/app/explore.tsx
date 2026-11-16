@@ -30,13 +30,6 @@ const ROLE_META: Record<
     border: '#DDD6FE',
     icon: '👑',
   },
-  admin: {
-    label: 'Admin',
-    color: '#D97706',
-    bg: '#FEF3C7',
-    border: '#FDE68A',
-    icon: '🛡️',
-  },
   user: {
     label: 'User',
     color: '#059669',

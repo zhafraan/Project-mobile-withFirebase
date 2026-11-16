@@ -20,6 +20,7 @@ import {
   configureGoogleSignIn,
   getUserFromStorage,
   linkPasswordToCurrentUser as _linkPasswordToCurrentUser,
+  registerWithEmailPassword as _registerWithEmailPassword,
   saveUserToStorage,
   signInWithEmailPassword as _signInWithEmailPassword,
   signInWithGoogle as _signInWithGoogle,
@@ -45,6 +46,7 @@ interface AuthContextValue {
   isSuperAdmin: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmailPassword: (email: string, password: string) => Promise<void>;
+  registerWithEmailPassword: (email: string, password: string) => Promise<void>;
   linkPassword: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   error: string | null;
@@ -59,6 +61,7 @@ const AuthContext = createContext<AuthContextValue>({
   isSuperAdmin: false,
   signInWithGoogle: async () => {},
   signInWithEmailPassword: async () => {},
+  registerWithEmailPassword: async () => {},
   linkPassword: async () => {},
   signOut: async () => {},
   error: null,
@@ -166,6 +169,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const registerWithEmailPassword = useCallback(async (email: string, password: string) => {
+    setError(null);
+    try {
+      await _registerWithEmailPassword(email, password);
+      // onAuthStateChanged akan mengupdate state secara otomatis
+    } catch (e: any) {
+      setError(getAuthErrorMessage(e));
+    }
+  }, []);
+
   const linkPassword = useCallback(async (email: string, password: string) => {
     setError(null);
     try {
@@ -199,6 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isSuperAdmin: role === 'super_admin',
       signInWithGoogle,
       signInWithEmailPassword,
+      registerWithEmailPassword,
       linkPassword,
       signOut,
       error,
@@ -211,6 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       providers,
       signInWithGoogle,
       signInWithEmailPassword,
+      registerWithEmailPassword,
       linkPassword,
       signOut,
       error,
