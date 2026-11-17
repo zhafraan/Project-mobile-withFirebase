@@ -1,6 +1,12 @@
 // src/app/_layout.tsx
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useRouter, useSegments, Slot } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+  useRouter,
+  useSegments,
+  Slot,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
@@ -37,7 +43,7 @@ function RootNavigator() {
     } else if (status === 'authenticated' && inLoginPage) {
       router.replace('/');
     }
-  }, [status, segments]);
+  }, [status, segments, router]);
 
   // Jika sudah terautentikasi → tampilkan AppTabs (tab navigator)
   // Jika belum / loading → Slot akan render halaman login setelah redirect

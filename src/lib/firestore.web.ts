@@ -9,7 +9,6 @@ import {
   doc,
   getDocs,
   getFirestore,
-  limit,
   onSnapshot,
   query,
   serverTimestamp,

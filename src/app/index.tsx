@@ -323,14 +323,12 @@ export default function HomeScreen() {
                 </ThemedText>
                 {role === 'super_admin' ? (
                   <View style={[styles.roleBadge, styles.roleBadgeSuperAdmin]}>
-                    <ThemedText style={styles.roleBadgeIcon}>👑</ThemedText>
                     <ThemedText style={[styles.roleBadgeText, styles.roleBadgeTextSuperAdmin]}>
                       Super Admin
                     </ThemedText>
                   </View>
                 ) : (
                   <View style={[styles.roleBadge, styles.roleBadgeUser]}>
-                    <ThemedText style={styles.roleBadgeIcon}>👤</ThemedText>
                     <ThemedText style={[styles.roleBadgeText, styles.roleBadgeTextUser]}>
                       User
                     </ThemedText>
@@ -498,10 +496,6 @@ const styles = StyleSheet.create({
   roleBadgeUser: {
     backgroundColor: '#ECFDF5',
     borderColor: '#A7F3D0',
-  },
-  roleBadgeIcon: {
-    fontSize: 10,
-    lineHeight: 13,
   },
   roleBadgeText: {
     fontSize: 11,

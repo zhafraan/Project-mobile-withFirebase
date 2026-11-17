@@ -19,6 +19,7 @@ export type { User as FirebaseUser };
 
 function getGoogleSignin(): any {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- dimuat dinamis agar web tidak ikut memuat modul native
     const { GoogleSignin } = require('@react-native-google-signin/google-signin');
     return GoogleSignin;
   } catch {

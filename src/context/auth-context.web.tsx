@@ -48,6 +48,7 @@ interface AuthContextValue {
   registerWithEmailPassword: (email: string, password: string) => Promise<void>;
   linkPassword: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  clearError: () => void;
   error: string | null;
 }
 
@@ -63,6 +64,7 @@ const AuthContext = createContext<AuthContextValue>({
   registerWithEmailPassword: async () => {},
   linkPassword: async () => {},
   signOut: async () => {},
+  clearError: () => {},
   error: null,
 });
 
@@ -98,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setRole(null);
         setProviders([]);
+        setError(null);
         setStatus('unauthenticated');
         return;
       }
@@ -195,6 +198,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const clearError = useCallback(() => setError(null), []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -208,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       registerWithEmailPassword,
       linkPassword,
       signOut,
+      clearError,
       error,
     }),
     [
@@ -221,6 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       registerWithEmailPassword,
       linkPassword,
       signOut,
+      clearError,
       error,
     ]
   );

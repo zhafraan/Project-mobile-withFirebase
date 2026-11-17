@@ -21,21 +21,19 @@ import type { UserRole } from '@/lib/users';
 
 const ROLE_META: Record<
   UserRole,
-  { label: string; color: string; bg: string; border: string; icon: string }
+  { label: string; color: string; bg: string; border: string }
 > = {
   super_admin: {
     label: 'Super Admin',
     color: '#7C3AED',
     bg: '#F5F3FF',
     border: '#DDD6FE',
-    icon: '👑',
   },
   user: {
     label: 'User',
     color: '#059669',
     bg: '#ECFDF5',
     border: '#A7F3D0',
-    icon: '👤',
   },
 };
 
@@ -73,7 +71,7 @@ export default function ExploreScreen() {
   const roleMeta =
     role && ROLE_META[role]
       ? ROLE_META[role]
-      : { label: 'Memuat...', color: '#9CA3AF', bg: '#F3F4F6', border: '#E5E7EB', icon: '⏳' };
+      : { label: 'Memuat...', color: '#9CA3AF', bg: '#F3F4F6', border: '#E5E7EB' };
 
   const handleLinkPassword = async () => {
     setMessage(null);
@@ -140,7 +138,6 @@ export default function ExploreScreen() {
                   { backgroundColor: roleMeta.bg, borderColor: roleMeta.border },
                 ]}
               >
-                <ThemedText style={styles.roleBadgeIcon}>{roleMeta.icon}</ThemedText>
                 <ThemedText style={[styles.roleBadgeText, { color: roleMeta.color }]}>
                   {roleMeta.label}
                 </ThemedText>
@@ -324,7 +321,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignSelf: 'center',
   },
-  roleBadgeIcon: { fontSize: 11, lineHeight: 14 },
   roleBadgeText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
   providersRow: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4,
